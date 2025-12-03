@@ -10,7 +10,7 @@ from datetime import datetime
 import re
 from pydub import AudioSegment
 
-# Подавляем предупреждения librosa
+# Suppress librosa warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='librosa')
 
 # Camelot Wheel System
@@ -41,18 +41,18 @@ class MusicMixer:
         self.bpm_cache = {}
         self.key_cache = {}
         
-        # Временная директория для обработки
+        # Temporary directory for processing
         self.temp_dir = tempfile.mkdtemp(prefix="music_mixer_")
         
     def cleanup(self):
-        """Очистка временных файлов"""
+        """Clean up temporary files"""
         import shutil
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
     
     @staticmethod
     def extract_key_from_filename(filename):
-        """Извлекает Camelot key из названия файла"""
+        """Extract Camelot key from filename"""
         camelot_patterns = [
             r'\b(\d{1,2}[AB])\b',
             r'key[\s_-]*(\d{1,2}[AB])',
@@ -89,7 +89,7 @@ class MusicMixer:
     
     @staticmethod
     def extract_bpm_from_filename(filename):
-        """Извлекает BPM из названия файла"""
+        """Extract BPM from filename"""
         patterns = [
             r'(\d{2,3})bpm',
             r'bpm[\s_-]*(\d{2,3})',
@@ -109,7 +109,7 @@ class MusicMixer:
     
     @staticmethod
     def get_compatible_keys(key):
-        """Возвращает список совместимых ключей"""
+        """Get list of harmonically compatible keys"""
         if key not in CAMELOT_WHEEL:
             return [key]
         
@@ -130,7 +130,7 @@ class MusicMixer:
         return compatible
     
     def get_all_samples(self, custom_dir=None):
-        """Получение всех аудиофайлов"""
+        """Get all audio files from directory"""
         search_dir = custom_dir if custom_dir else self.samples_dir
         audio_files = []
         
@@ -141,7 +141,7 @@ class MusicMixer:
         return audio_files
     
     def get_bpm(self, file_path):
-        """Определение BPM с кэшированием"""
+        """Detect BPM with caching"""
         if file_path in self.bpm_cache:
             return self.bpm_cache[file_path]
         
@@ -159,7 +159,7 @@ class MusicMixer:
                 self.bpm_cache[file_path] = parent_bpm
                 return parent_bpm
             
-            # Анализ аудио (ограничиваем длительность для скорости)
+            # Audio analysis (limit duration for speed)
             y, sr = librosa.load(file_path, duration=15, mono=True, sr=22050)
             
             try:
@@ -188,7 +188,7 @@ class MusicMixer:
             return self.target_bpm
     
     def get_sample_key(self, file_path):
-        """Получение ключа для семпла"""
+        """Get musical key for sample"""
         if file_path in self.key_cache:
             return self.key_cache[file_path]
         
@@ -204,7 +204,7 @@ class MusicMixer:
     
     @staticmethod
     def optimize_audio_length(audio, target_bpm):
-        """Оптимизация длины для зацикливания"""
+        """Optimize audio length for smooth looping"""
         beat_duration = 60000 / target_bpm
         measure_duration = beat_duration * 4
         ideal_length = measure_duration * 4
@@ -221,7 +221,7 @@ class MusicMixer:
     
     @staticmethod
     def change_tempo(audio_segment, current_bpm, target_bpm):
-        """Изменение темпа аудио"""
+        """Change audio tempo"""
         if current_bpm == target_bpm or current_bpm <= 0:
             return audio_segment
         
@@ -240,7 +240,7 @@ class MusicMixer:
             return audio_segment
     
     def classify_samples(self, samples):
-        """Классификация семплов по категориям"""
+        """Classify samples into categories"""
         categories = defaultdict(list)
         
         for sample in samples:
@@ -268,15 +268,15 @@ class MusicMixer:
         return categories
     
     def create_multilayer_composition(self, num_layers=3, custom_samples_dir=None):
-        """Создание многослойной композиции"""
-        # Получаем семплы из указанной директории или основной
+        """Create multi-layer composition"""
+        # Get samples from specified directory or default
         if custom_samples_dir:
             samples = self.get_all_samples(custom_samples_dir)
         else:
             samples = self.get_all_samples()
         
         if not samples:
-            raise ValueError("Не найдено аудиофайлов")
+            raise ValueError("No audio files found")
         
         categories = self.classify_samples(samples)
         layers = []
@@ -284,7 +284,7 @@ class MusicMixer:
             'layers': [],
             'bpm': self.target_bpm,
             'key': self.current_key,
-            'mode': 'экспериментальный' if self.experimental_mode else 'стандартный',
+            'mode': 'experimental' if self.experimental_mode else 'standard',
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
@@ -372,11 +372,11 @@ class MusicMixer:
         return layers, composition_info
     
     def generate_mix_audio(self, layers, duration_ms=30000):
-        """Генерация финального аудиофайла из слоев"""
+        """Generate final audio mix from layers"""
         if not layers:
-            raise ValueError("Нет слоев для микширования")
+            raise ValueError("No layers to mix")
         
-        # Создаем пустое аудио нужной длины
+        # Create empty audio of required length
         mix_audio = AudioSegment.silent(duration=duration_ms)
         
         for layer in layers:
@@ -384,37 +384,37 @@ class MusicMixer:
             gain_db = 20 * math.log10(layer['volume'])
             audio_with_gain = audio.apply_gain(gain_db)
             
-            # Зацикливаем слой до нужной длины
+            # Loop layer to required length
             looped_audio = AudioSegment.empty()
             while len(looped_audio) < duration_ms:
                 looped_audio += audio_with_gain
             
             looped_audio = looped_audio[:duration_ms]
             
-            # Накладываем слой на микс
+            # Overlay layer on mix
             mix_audio = mix_audio.overlay(looped_audio)
         
-        # Сохраняем во временный файл
+        # Save to temporary file
         temp_file = os.path.join(self.temp_dir, f"mix_{datetime.now().strftime('%H%M%S')}.wav")
         mix_audio.export(temp_file, format="wav")
         
         return temp_file
     
     def generate_complete_mix(self, num_layers=3, custom_samples_dir=None):
-        """Полный процесс генерации микса"""
+        """Complete mix generation process"""
         try:
-            # 1. Создаем композицию
+            # 1. Create composition
             layers, composition_info = self.create_multilayer_composition(
                 num_layers, custom_samples_dir
             )
             
             if not layers:
-                raise ValueError("Не удалось создать композицию")
+                raise ValueError("Could not create composition")
             
-            # 2. Генерируем аудиофайл
+            # 2. Generate audio file
             audio_path = self.generate_mix_audio(layers)
             
-            # 3. Формируем описание
+            # 3. Format description
             description = self._format_composition_info(composition_info)
             
             return audio_path, description, composition_info
@@ -423,22 +423,22 @@ class MusicMixer:
             raise
     
     def _format_composition_info(self, composition_info):
-        """Форматирование информации о композиции"""
+        """Format composition information"""
         text = f"""
-🎶 **Готовый микс!**
+🎶 **Generated Mix!**
         
-**Параметры:**
-• Слоев: {len(composition_info['layers'])}
+**Parameters:**
+• Layers: {len(composition_info['layers'])}
 • BPM: {composition_info['bpm']}
-• Ключ: {composition_info['key']}
-• Режим: {composition_info['mode']}
+• Key: {composition_info['key']}
+• Mode: {composition_info['mode']}
         
-**Состав микса:**
+**Mix Composition:**
 """
         
         for i, layer in enumerate(composition_info['layers'], 1):
-            key_info = f", ключ: {layer['key']}" if layer['key'] else ""
+            key_info = f", key: {layer['key']}" if layer['key'] else ""
             text += f"\n{i}. {layer['category']}: {layer['sample']} "
-            text += f"(BPM: {layer['original_bpm']}, громкость: {layer['volume']:.2f}{key_info})"
+            text += f"(BPM: {layer['original_bpm']}, volume: {layer['volume']:.2f}{key_info})"
         
         return text
