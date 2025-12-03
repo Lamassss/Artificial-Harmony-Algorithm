@@ -50,39 +50,59 @@ def process_uploaded_files(files, use_default_samples):
                 return "⚠️ No audio files found in pre-loaded archive. Please upload your own files."
         else:
             # User uploads their own files
-            if not files:
-                return "❌ No files uploaded"
-            
-            temp_dir = Path(tempfile.mkdtemp(prefix="user_samples_"))
-            file_count = 0
-            
-            for file in files:
-                file_path = Path(file.name)
+            if files:
+                temp_dir = Path(tempfile.mkdtemp(prefix="user_samples_"))
+                file_count = 0
                 
-                # If it's a zip archive - extract it
-                if file_path.suffix.lower() == '.zip':
-                    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                        zip_ref.extractall(temp_dir)
-                        extracted = len(zip_ref.namelist())
-                        file_count += extracted
+                for file in files:
+                    file_path = Path(file.name)
+                    
+                    # If it's a zip archive - extract it
+                    if file_path.suffix.lower() == '.zip':
+                        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                            zip_ref.extractall(temp_dir)
+                            extracted = len(zip_ref.namelist())
+                            file_count += extracted
+                    else:
+                        # Otherwise copy the audio file
+                        shutil.copy(file_path, temp_dir / file_path.name)
+                        file_count += 1
+                
+                current_samples_dir = str(temp_dir)
+                
+                # Check if there are audio files
+                audio_files = list(temp_dir.rglob("*.wav")) + list(temp_dir.rglob("*.mp3")) + \
+                             list(temp_dir.rglob("*.flac")) + list(temp_dir.rglob("*.aiff"))
+                
+                if audio_files:
+                    return f"✅ Uploaded {file_count} files. Found {len(audio_files)} audio files."
                 else:
-                    # Otherwise copy the audio file
-                    shutil.copy(file_path, temp_dir / file_path.name)
-                    file_count += 1
-            
-            current_samples_dir = str(temp_dir)
-            
-            # Check if there are audio files
-            audio_files = list(temp_dir.rglob("*.wav")) + list(temp_dir.rglob("*.mp3")) + \
-                         list(temp_dir.rglob("*.flac")) + list(temp_dir.rglob("*.aiff"))
-            
-            if audio_files:
-                return f"✅ Uploaded {file_count} files. Found {len(audio_files)} audio files."
+                    return "⚠️ Files uploaded, but no audio files found (.wav, .mp3, .flac, .aiff)"
             else:
-                return "⚠️ Files uploaded, but no audio files found (.wav, .mp3, .flac, .aiff)"
+                # Check if current_samples_dir is already set via custom path
+                if current_samples_dir and os.path.exists(current_samples_dir):
+                    dir_path = Path(current_samples_dir)
+                    audio_files = list(dir_path.rglob("*.wav")) + list(dir_path.rglob("*.mp3")) + \
+                                 list(dir_path.rglob("*.flac")) + list(dir_path.rglob("*.aiff"))
+                    
+                    if audio_files:
+                        return f"✅ Using custom directory. Found {len(audio_files)} audio files."
+                    else:
+                        return "⚠️ Custom directory set, but no audio files found."
+                else:
+                    return "❌ No files uploaded and no custom directory set."
                 
     except Exception as e:
         return f"❌ Error processing files: {str(e)}"
+
+def set_custom_path(path, use_default):
+    """Set custom samples directory path"""
+    global current_samples_dir
+    if path and os.path.exists(path):
+        current_samples_dir = path
+        return f"✅ Custom directory set: {path}"
+    else:
+        return "❌ Directory not found or path is invalid"
 
 def init_mixer(target_bpm, current_key, use_experimental):
     """Initialize the mixer"""
@@ -152,6 +172,31 @@ def generate_mix(num_layers, target_bpm, current_key, use_experimental, progress
     except Exception as e:
         return None, f"❌ Error creating mix: {str(e)}"
 
+def update_sample_info():
+    """Update information about loaded samples"""
+    global current_samples_dir
+    if current_samples_dir and os.path.exists(current_samples_dir):
+        dir_path = Path(current_samples_dir)
+        wav_files = list(dir_path.rglob("*.wav"))
+        mp3_files = list(dir_path.rglob("*.mp3"))
+        flac_files = list(dir_path.rglob("*.flac"))
+        aiff_files = list(dir_path.rglob("*.aiff"))
+        
+        total = len(wav_files) + len(mp3_files) + len(flac_files) + len(aiff_files)
+        
+        info_text = f"""
+        **📊 Sample Statistics:**
+        - Total audio files: {total}
+        - WAV files: {len(wav_files)}
+        - MP3 files: {len(mp3_files)}
+        - FLAC files: {len(flac_files)}
+        - AIFF files: {len(aiff_files)}
+        
+        **📂 Source:** {dir_path.name}
+        """
+        return info_text
+    return "Sample information not available"
+
 def cleanup_temp_dirs():
     """Clean up temporary directories"""
     global current_mixer
@@ -160,6 +205,21 @@ def cleanup_temp_dirs():
 
 # Create Gradio interface
 with gr.Blocks(title="Artificial Harmony Algorithm") as demo:
+    # Добавляем CSS через мета-тег в HTML
+    gr.HTML("""
+    <style>
+    .warning-text {
+        color: #ff6b6b;
+        font-weight: bold;
+        background-color: #fff3cd;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ffc107;
+        margin: 10px 0;
+    }
+    </style>
+    """)
+    
     gr.Markdown("# 🎵 Artificial Harmony Algorithm")
     gr.Markdown("""
     ### Create unique music mixes from samples!
@@ -167,6 +227,7 @@ with gr.Blocks(title="Artificial Harmony Algorithm") as demo:
     **Choose sample source:**
     - 🎁 **Use pre-loaded samples** (quick start)
     - 📤 **Upload your own samples** (full control)
+    - 🔧 **Advanced: Custom directory path**
     """)
     
     with gr.Row():
@@ -179,6 +240,30 @@ with gr.Blocks(title="Artificial Harmony Algorithm") as demo:
                 value=True,
                 interactive=True
             )
+            
+            # Reminder for users - используем HTML с inline стилями
+            gr.HTML("""
+            <div style="color: #ff6b6b; font-weight: bold; background-color: #fff3cd; padding: 10px; border-radius: 5px; border: 1px solid #ffc107; margin: 10px 0;">
+            ⚠️ <b>Important:</b> Uncheck the box above if you're uploading your own samples!
+            </div>
+            """)
+            
+            # Optional: Direct path input for advanced users
+            with gr.Accordion("🔧 Advanced: Specify custom samples directory (optional)", open=False):
+                gr.Markdown("Provide a direct file system path to your samples folder:")
+                custom_samples_path = gr.Textbox(
+                    label="Custom samples directory path",
+                    placeholder="e.g., /path/to/your/samples or C:\\Users\\Name\\samples",
+                    interactive=True
+                )
+                use_custom_path_btn = gr.Button("Use This Directory", variant="secondary", size="sm")
+                
+                custom_path_status = gr.Textbox(label="Status", interactive=False)
+                use_custom_path_btn.click(
+                    set_custom_path,
+                    inputs=[custom_samples_path, use_default_samples],
+                    outputs=[custom_path_status]
+                )
             
             with gr.Accordion("📤 Upload your own samples (optional)", open=False):
                 file_upload = gr.File(
@@ -262,31 +347,6 @@ with gr.Blocks(title="Artificial Harmony Algorithm") as demo:
             # Sample information
             with gr.Accordion("📊 Sample Information", open=False):
                 sample_info = gr.Markdown("Information will appear after loading samples")
-            
-            def update_sample_info():
-                """Update information about loaded samples"""
-                global current_samples_dir
-                if current_samples_dir and os.path.exists(current_samples_dir):
-                    dir_path = Path(current_samples_dir)
-                    wav_files = list(dir_path.rglob("*.wav"))
-                    mp3_files = list(dir_path.rglob("*.mp3"))
-                    flac_files = list(dir_path.rglob("*.flac"))
-                    aiff_files = list(dir_path.rglob("*.aiff"))
-                    
-                    total = len(wav_files) + len(mp3_files) + len(flac_files) + len(aiff_files)
-                    
-                    info_text = f"""
-                    **📊 Sample Statistics:**
-                    - Total audio files: {total}
-                    - WAV files: {len(wav_files)}
-                    - MP3 files: {len(mp3_files)}
-                    - FLAC files: {len(flac_files)}
-                    - AIFF files: {len(aiff_files)}
-                    
-                    **📂 Source:** {dir_path.name}
-                    """
-                    return info_text
-                return "Sample information not available"
             
             load_samples_btn.click(
                 update_sample_info,
