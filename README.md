@@ -1,5 +1,5 @@
 ---
-title: "AI Music Mixer"
+title: "Artificial Harmony Algorithm"
 emoji: "🎵"
 sdk: "docker"
 license: "MIT"
@@ -8,7 +8,7 @@ short_description: "Generate AI-powered harmonic music mixes from audio samples.
 
 # 🎵 AI Music Mixer
 
-[![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face%20Space-blue)](https://huggingface.co/spaces/Dmtlant/DJ)
+[![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face%20Space-blue)](https://huggingface.co/spaces/Dmtlant/aha-algorithm)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-black)](https://github.com/Lamassss/ai-music-mixer)
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -30,7 +30,7 @@ An intelligent music mixer that creates harmonious, multi-layer compositions fro
 ## 🌐 Live Demo
 
 Try the live version on Hugging Face Spaces:  
-**[https://huggingface.co/spaces/Dmtlant/DJ](https://huggingface.co/spaces/Dmtlant/DJ)**
+**[https://huggingface.co/spaces/Dmtlant/aha-algorithm](https://huggingface.co/spaces/Dmtlant/aha-algorithm)**
 
 > ⚠️ **Note:** The demo may take 30-60 seconds to load on first access due to server startup.
 
@@ -38,7 +38,7 @@ Try the live version on Hugging Face Spaces:
 
 ### Option 1: Online Demo (Recommended)
 
-1. Visit **[https://huggingface.co/spaces/Dmtlant/DJ](https://huggingface.co/spaces/Dmtlant/DJ)**
+1. Visit **[https://huggingface.co/spaces/Dmtlant/aha-algorithm](https://huggingface.co/spaces/Dmtlant/aha-algorithm)**
 2. Wait for the interface to load
 3. Start creating mixes immediately
 
@@ -51,7 +51,7 @@ Try the live version on Hugging Face Spaces:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Lamassss/ai-music-mixer.git
+git clone https://github.com/Lamassss/Artificial-Harmony-Algorithm.git
 cd ai-music-mixer
 
 # Install dependencies
