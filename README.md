@@ -1,11 +1,8 @@
 ---
-title: DJ
+title: Artificial Harmony Algorithm
 emoji: 📚
-colorFrom: green
-colorTo: purple
 sdk: docker
-pinned: false
-license: openrail
+license: mit
 short_description: Generated music
 ---
 
