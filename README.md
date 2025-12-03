@@ -48,6 +48,7 @@ Try the live version on Hugging Face Spaces:
 - Python 3.10+
 - Git
 - FFmpeg (for audio processing)
+- Libraries: gradio, librosa, numpy, scipy, pydub, soundfile
 
 ```bash
 # Clone the repository
