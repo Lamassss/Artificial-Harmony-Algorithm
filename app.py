@@ -5,16 +5,16 @@ import gradio as gr
 from pathlib import Path
 import shutil
 
-# Импортируем класс MusicMixer
+# Import MusicMixer class
 from music_mixer_logic import MusicMixer
 
-# Глобальные переменные
+# Global variables
 current_mixer = None
 current_samples_dir = None
-DEFAULT_SAMPLES_ZIP = "samples.zip"  # Предзагруженный архив
+DEFAULT_SAMPLES_ZIP = "default_samples.zip"  # Pre-loaded samples archive
 
 def extract_default_samples():
-    """Распаковывает предзагруженный архив с семплами"""
+    """Extract pre-loaded samples archive"""
     try:
         if os.path.exists(DEFAULT_SAMPLES_ZIP):
             temp_dir = Path(tempfile.mkdtemp(prefix="default_samples_"))
@@ -22,36 +22,36 @@ def extract_default_samples():
                 zip_ref.extractall(temp_dir)
             return str(temp_dir)
         else:
-            # Если архива нет, создаем пустую директорию
+            # If archive doesn't exist, create empty directory
             temp_dir = Path(tempfile.mkdtemp(prefix="empty_samples_"))
             return str(temp_dir)
     except Exception as e:
-        print(f"Ошибка при распаковке архива: {e}")
+        print(f"Error extracting archive: {e}")
         temp_dir = Path(tempfile.mkdtemp(prefix="error_samples_"))
         return str(temp_dir)
 
 def process_uploaded_files(files, use_default_samples):
-    """Обрабатываем загруженные файлы"""
+    """Process uploaded files"""
     global current_samples_dir
     
     try:
         if use_default_samples:
-            # Используем предзагруженные семплы
+            # Use pre-loaded samples
             current_samples_dir = extract_default_samples()
             
-            # Проверяем, есть ли файлы в распакованном архиве
+            # Check if there are files in the extracted archive
             default_dir = Path(current_samples_dir)
             audio_files = list(default_dir.rglob("*.wav")) + list(default_dir.rglob("*.mp3")) + \
                          list(default_dir.rglob("*.flac")) + list(default_dir.rglob("*.aiff"))
             
             if audio_files:
-                return f"✅ Используются предзагруженные семплы. Найдено {len(audio_files)} аудиофайлов."
+                return f"✅ Using pre-loaded samples. Found {len(audio_files)} audio files."
             else:
-                return "⚠️ В предзагруженном архиве не найдено аудиофайлов. Загрузите свои файлы."
+                return "⚠️ No audio files found in pre-loaded archive. Please upload your own files."
         else:
-            # Пользователь загружает свои файлы
+            # User uploads their own files
             if not files:
-                return "❌ Файлы не загружены"
+                return "❌ No files uploaded"
             
             temp_dir = Path(tempfile.mkdtemp(prefix="user_samples_"))
             file_count = 0
@@ -59,45 +59,45 @@ def process_uploaded_files(files, use_default_samples):
             for file in files:
                 file_path = Path(file.name)
                 
-                # Если это zip-архив - распаковываем
+                # If it's a zip archive - extract it
                 if file_path.suffix.lower() == '.zip':
                     with zipfile.ZipFile(file_path, 'r') as zip_ref:
                         zip_ref.extractall(temp_dir)
                         extracted = len(zip_ref.namelist())
                         file_count += extracted
                 else:
-                    # Иначе копируем аудиофайл
+                    # Otherwise copy the audio file
                     shutil.copy(file_path, temp_dir / file_path.name)
                     file_count += 1
             
             current_samples_dir = str(temp_dir)
             
-            # Проверяем, есть ли аудиофайлы
+            # Check if there are audio files
             audio_files = list(temp_dir.rglob("*.wav")) + list(temp_dir.rglob("*.mp3")) + \
                          list(temp_dir.rglob("*.flac")) + list(temp_dir.rglob("*.aiff"))
             
             if audio_files:
-                return f"✅ Загружено {file_count} файлов. Найдено {len(audio_files)} аудиофайлов."
+                return f"✅ Uploaded {file_count} files. Found {len(audio_files)} audio files."
             else:
-                return "⚠️ Файлы загружены, но не найдено аудиофайлов (.wav, .mp3, .flac, .aiff)"
+                return "⚠️ Files uploaded, but no audio files found (.wav, .mp3, .flac, .aiff)"
                 
     except Exception as e:
-        return f"❌ Ошибка при обработке файлов: {str(e)}"
+        return f"❌ Error processing files: {str(e)}"
 
 def init_mixer(target_bpm, current_key, use_experimental):
-    """Инициализация миксера"""
+    """Initialize the mixer"""
     global current_mixer, current_samples_dir
     
     if current_samples_dir is None:
-        # Если ничего не выбрано, используем предзагруженные семплы
+        # If nothing selected, use pre-loaded samples
         current_samples_dir = extract_default_samples()
     
     try:
-        # Проверяем, существует ли директория
+        # Check if directory exists
         if not os.path.exists(current_samples_dir):
-            return None, "❌ Директория с семплами не найдена"
+            return None, "❌ Sample directory not found"
         
-        # Создаем миксер
+        # Create mixer
         current_mixer = MusicMixer(
             samples_dir=current_samples_dir,
             target_bpm=target_bpm,
@@ -105,96 +105,96 @@ def init_mixer(target_bpm, current_key, use_experimental):
             experimental_mode=use_experimental
         )
         
-        # Проверяем, есть ли семплы
+        # Check if there are samples
         samples = current_mixer.get_all_samples()
         if not samples:
-            return None, f"❌ Не найдено аудиофайлов. Попробуйте загрузить другие файлы."
+            return None, f"❌ No audio files found. Try uploading different files."
         
-        return current_mixer, f"✅ Миксер готов. Проанализировано {len(samples)} семплов"
+        return current_mixer, f"✅ Mixer ready. Analyzed {len(samples)} samples"
         
     except Exception as e:
-        return None, f"❌ Ошибка инициализации: {str(e)}"
+        return None, f"❌ Initialization error: {str(e)}"
 
 def generate_mix(num_layers, target_bpm, current_key, use_experimental, progress=gr.Progress()):
-    """Основная функция генерации микса"""
+    """Main mix generation function"""
     global current_mixer
     
     try:
-        progress(0.1, desc="🎵 Инициализация миксера...")
+        progress(0.1, desc="🎵 Initializing mixer...")
         
-        # Инициализируем миксер
+        # Initialize mixer
         mixer, status = init_mixer(target_bpm, current_key, use_experimental)
         if mixer is None:
             return None, status
         
         current_mixer = mixer
         
-        progress(0.4, desc="🎵 Анализ семплов и создание композиции...")
+        progress(0.4, desc="🎵 Analyzing samples and creating composition...")
         
-        # Генерируем микс
+        # Generate mix
         audio_path, description, composition_info = current_mixer.generate_complete_mix(
             num_layers=num_layers
         )
         
-        progress(0.8, desc="💾 Сохранение результата...")
+        progress(0.8, desc="💾 Saving result...")
         
         if os.path.exists(audio_path):
-            # Читаем файл для проверки
+            # Read file for verification
             file_size = os.path.getsize(audio_path)
             if file_size > 0:
-                progress(1.0, desc="✅ Готово!")
+                progress(1.0, desc="✅ Done!")
                 return audio_path, description
             else:
-                return None, "❌ Ошибка: создан пустой аудиофайл"
+                return None, "❌ Error: created empty audio file"
         else:
-            return None, "❌ Ошибка: аудиофайл не создан"
+            return None, "❌ Error: audio file not created"
         
     except Exception as e:
-        return None, f"❌ Ошибка при создании микса: {str(e)}"
+        return None, f"❌ Error creating mix: {str(e)}"
 
 def cleanup_temp_dirs():
-    """Очистка временных директорий"""
+    """Clean up temporary directories"""
     global current_mixer
     if current_mixer:
         current_mixer.cleanup()
 
-# Создаем интерфейс Gradio
-with gr.Blocks(title="AI Музыкальный Миксер") as demo:
-    gr.Markdown("# 🎵 AI Музыкальный Миксер")
+# Create Gradio interface
+with gr.Blocks(title="AI Music Mixer") as demo:
+    gr.Markdown("# 🎵 AI Music Mixer")
     gr.Markdown("""
-    ### Создавайте уникальные музыкальные миксы из семплов!
+    ### Create unique music mixes from samples!
     
-    **Выберите источник семплов:**
-    - 🎁 **Использовать предзагруженные семплы** (быстрый старт)
-    - 📤 **Загрузить свои семплы** (полный контроль)
+    **Choose sample source:**
+    - 🎁 **Use pre-loaded samples** (quick start)
+    - 📤 **Upload your own samples** (full control)
     """)
     
     with gr.Row():
         with gr.Column(scale=1):
-            # Выбор источника семплов
-            gr.Markdown("## 📁 Шаг 1: Выберите источник семплов")
+            # Sample source selection
+            gr.Markdown("## 📁 Step 1: Choose Sample Source")
             
             use_default_samples = gr.Checkbox(
-                label="🎁 Использовать предзагруженные семплы",
+                label="🎁 Use pre-loaded samples",
                 value=True,
                 interactive=True
             )
             
-            with gr.Accordion("📤 Загрузить свои семплы (опционально)", open=False):
+            with gr.Accordion("📤 Upload your own samples (optional)", open=False):
                 file_upload = gr.File(
-                    label="Выберите аудиофайлы или ZIP-архив",
+                    label="Select audio files or ZIP archive",
                     file_types=[".wav", ".mp3", ".flac", ".aiff", ".zip"],
                     file_count="multiple",
                     interactive=True
                 )
             
             upload_status = gr.Textbox(
-                label="Статус семплов",
-                value="🎁 Готовы предзагруженные семплы. Нажмите 'Загрузить семплы'",
+                label="Sample Status",
+                value="🎁 Pre-loaded samples ready. Click 'Load Samples'",
                 interactive=False
             )
             
-            load_samples_btn = gr.Button("📁 Загрузить семплы", variant="primary")
+            load_samples_btn = gr.Button("📁 Load Samples", variant="primary")
             
             load_samples_btn.click(
                 process_uploaded_files,
@@ -204,67 +204,67 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
             
             gr.Markdown("---")
             
-            # Настройки микса
-            gr.Markdown("## ⚙️ Шаг 2: Настройка микса")
+            # Mix settings
+            gr.Markdown("## ⚙️ Step 2: Mix Settings")
             
             num_layers = gr.Slider(
                 minimum=1, maximum=8, value=3, step=1,
-                label="Количество слоев",
+                label="Number of Layers",
                 interactive=True
             )
             
             target_bpm = gr.Slider(
                 minimum=80, maximum=180, value=128, step=1,
-                label="Целевой BPM (темп)",
+                label="Target BPM (tempo)",
                 interactive=True
             )
             
             current_key = gr.Dropdown(
                 choices=[f"{i}{j}" for i in range(1, 13) for j in ['A', 'B']],
                 value="8A",
-                label="Музыкальный ключ (Camelot система)",
+                label="Musical Key (Camelot system)",
                 interactive=True
             )
             
             use_experimental = gr.Checkbox(
-                label="Экспериментальный режим (более необычные сочетания)", 
+                label="Experimental mode (more unusual combinations)", 
                 value=False,
                 interactive=True
             )
             
             generate_btn = gr.Button(
-                "🎵 Сгенерировать микс",
+                "🎵 Generate Mix",
                 variant="primary",
                 size="lg"
             )
         
         with gr.Column(scale=2):
-            # Секция результата
-            gr.Markdown("## 🎧 Результат")
+            # Results section
+            gr.Markdown("## 🎧 Results")
             
             status_info = gr.Markdown(
-                "### Готов к работе!\n"
-                "1. 📁 Выберите источник семплов\n"
-                "2. ⚙️ Настройте параметры микса\n"
-                "3. 🎵 Нажмите 'Сгенерировать микс'"
+                "### Ready to work!\n"
+                "1. 📁 Choose sample source\n"
+                "2. ⚙️ Configure mix settings\n"
+                "3. 🎵 Click 'Generate Mix'"
             )
             
             audio_output = gr.Audio(
-                label="Сгенерированный микс",
+                label="Generated Mix",
                 type="filepath",
                 interactive=False
             )
             
             text_output = gr.Markdown(
-                "Здесь появится информация о составе микса..."
+                "Mix composition info will appear here..."
             )
             
-            # Информация о процессе
-            with gr.Accordion("📊 Информация о семплах", open=False):
-                sample_info = gr.Markdown("Информация появится после загрузки семплов")
+            # Sample information
+            with gr.Accordion("📊 Sample Information", open=False):
+                sample_info = gr.Markdown("Information will appear after loading samples")
             
             def update_sample_info():
-                """Обновляет информацию о загруженных семплах"""
+                """Update information about loaded samples"""
                 global current_samples_dir
                 if current_samples_dir and os.path.exists(current_samples_dir):
                     dir_path = Path(current_samples_dir)
@@ -276,17 +276,17 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
                     total = len(wav_files) + len(mp3_files) + len(flac_files) + len(aiff_files)
                     
                     info_text = f"""
-                    **📊 Статистика семплов:**
-                    - Всего аудиофайлов: {total}
-                    - WAV файлов: {len(wav_files)}
-                    - MP3 файлов: {len(mp3_files)}
-                    - FLAC файлов: {len(flac_files)}
-                    - AIFF файлов: {len(aiff_files)}
+                    **📊 Sample Statistics:**
+                    - Total audio files: {total}
+                    - WAV files: {len(wav_files)}
+                    - MP3 files: {len(mp3_files)}
+                    - FLAC files: {len(flac_files)}
+                    - AIFF files: {len(aiff_files)}
                     
-                    **📂 Источник:** {dir_path.name}
+                    **📂 Source:** {dir_path.name}
                     """
                     return info_text
-                return "Информация о семплах недоступна"
+                return "Sample information not available"
             
             load_samples_btn.click(
                 update_sample_info,
@@ -294,20 +294,20 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
                 outputs=[sample_info]
             )
     
-    # Обработчик генерации
+    # Generation handler
     generate_btn.click(
         generate_mix,
         inputs=[num_layers, target_bpm, current_key, use_experimental],
         outputs=[audio_output, text_output]
     )
     
-    # Примеры настроек
+    # Preset examples
     gr.Markdown("---")
-    gr.Markdown("### 🚀 Быстрый старт: готовые пресеты")
+    gr.Markdown("### 🚀 Quick Start: Ready Presets")
     
     with gr.Row():
         with gr.Column():
-            gr.Markdown("**🎵 Танцевальный микс**")
+            gr.Markdown("**🎵 Dance Mix**")
             gr.Examples(
                 examples=[[3, 128, "8A", False]],
                 inputs=[num_layers, target_bpm, current_key, use_experimental],
@@ -315,7 +315,7 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
             )
         
         with gr.Column():
-            gr.Markdown("**🧪 Экспериментальный**")
+            gr.Markdown("**🧪 Experimental**")
             gr.Examples(
                 examples=[[4, 140, "5B", True]],
                 inputs=[num_layers, target_bpm, current_key, use_experimental],
@@ -323,7 +323,7 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
             )
         
         with gr.Column():
-            gr.Markdown("**😌 Спокойный микс**")
+            gr.Markdown("**😌 Chill Mix**")
             gr.Examples(
                 examples=[[2, 100, "3A", False]],
                 inputs=[num_layers, target_bpm, current_key, use_experimental],
@@ -331,15 +331,15 @@ with gr.Blocks(title="AI Музыкальный Миксер") as demo:
             )
 
 if __name__ == "__main__":
-    # Сначала проверяем наличие предзагруженного архива
+    # First check for pre-loaded archive
     if os.path.exists(DEFAULT_SAMPLES_ZIP):
-        print(f"✅ Найден предзагруженный архив: {DEFAULT_SAMPLES_ZIP}")
-        print(f"   Размер: {os.path.getsize(DEFAULT_SAMPLES_ZIP) / (1024*1024):.1f} MB")
+        print(f"✅ Found pre-loaded archive: {DEFAULT_SAMPLES_ZIP}")
+        print(f"   Size: {os.path.getsize(DEFAULT_SAMPLES_ZIP) / (1024*1024):.1f} MB")
     else:
-        print(f"⚠️  Предзагруженный архив не найден: {DEFAULT_SAMPLES_ZIP}")
-        print("   Пользователям нужно будет загрузить свои семплы")
+        print(f"⚠️  Pre-loaded archive not found: {DEFAULT_SAMPLES_ZIP}")
+        print("   Users will need to upload their own samples")
     
-    # Запускаем приложение
+    # Launch application
     demo.launch(
         server_name="0.0.0.0", 
         server_port=7860, 
