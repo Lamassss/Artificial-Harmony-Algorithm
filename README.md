@@ -6,7 +6,7 @@ license: "MIT"
 short_description: "Generate AI-powered harmonic music mixes from audio samples."
 ---
 
-# 🎵 AI Music Mixer
+# 🎵  Artificial Harmony Algorithm
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗-Hugging%20Face%20Space-blue)](https://huggingface.co/spaces/Dmtlant/aha-algorithm)
 [![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-black)](https://github.com/Lamassss/Artificial-Harmony-Algorithm)
