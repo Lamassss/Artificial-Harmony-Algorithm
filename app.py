@@ -159,8 +159,8 @@ def cleanup_temp_dirs():
         current_mixer.cleanup()
 
 # Create Gradio interface
-with gr.Blocks(title="AI Music Mixer") as demo:
-    gr.Markdown("# 🎵 AI Music Mixer")
+with gr.Blocks(title="Artificial Harmony Algorithm") as demo:
+    gr.Markdown("# 🎵 Artificial Harmony Algorithm")
     gr.Markdown("""
     ### Create unique music mixes from samples!
     
