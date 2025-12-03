@@ -11,7 +11,7 @@ from music_mixer_logic import MusicMixer
 # Global variables
 current_mixer = None
 current_samples_dir = None
-DEFAULT_SAMPLES_ZIP = "default_samples.zip"  # Pre-loaded samples archive
+DEFAULT_SAMPLES_ZIP = "samples.zip"  # Pre-loaded samples archive
 
 def extract_default_samples():
     """Extract pre-loaded samples archive"""
