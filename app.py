@@ -11,7 +11,7 @@ from music_mixer_logic import MusicMixer
 # Глобальные переменные
 current_mixer = None
 current_samples_dir = None
-DEFAULT_SAMPLES_ZIP = "default_samples.zip"  # Предзагруженный архив
+DEFAULT_SAMPLES_ZIP = "samples.zip"  # Предзагруженный архив
 
 def extract_default_samples():
     """Распаковывает предзагруженный архив с семплами"""
