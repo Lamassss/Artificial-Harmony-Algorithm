@@ -61,3 +61,9 @@ pip install -r requirements.txt
 python app.py
 
 Access at: http://localhost:7860
+
+### Option 1: Online Demo (Recommended)
+
+1. Visit **[https://huggingface.co/spaces/Dmtlant/aha-algorithm](https://huggingface.co/spaces/Dmtlant/aha-algorithm)**
+2. Wait for the interface to load
+3. Start creating mixes immediately
